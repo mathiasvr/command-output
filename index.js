@@ -21,28 +21,32 @@ class RecordStream extends Transform {
   }
 }
 
-try {
-  const command = core.getInput('run')
-  const shell = core.getInput('shell')
+function run (command, shell) {
+  return new Promise((resolve, reject) => {
+    const outRec = new RecordStream()
+    const errRec = new RecordStream()
 
-  const outRec = new RecordStream()
-  const errRec = new RecordStream()
+    // Run command
+    const cmd = spawn(command, { shell })
 
-  // Run command
-  const cmd = spawn(command, { shell })
+    // Record stream output and pass it through main process
+    cmd.stdout.pipe(outRec).pipe(process.stdout)
+    cmd.stderr.pipe(errRec).pipe(process.stderr)
 
-  // Record stream output and pass it through main process
-  cmd.stdout.pipe(outRec).pipe(process.stdout)
-  cmd.stderr.pipe(errRec).pipe(process.stderr)
+    cmd.on('error', error => reject(error))
 
-  cmd.on('close', code => {
-    core.setOutput('stdout', outRec.output.toString())
-    core.setOutput('stderr', errRec.output.toString())
+    cmd.on('close', code => {
+      core.setOutput('stdout', outRec.output.toString())
+      core.setOutput('stderr', errRec.output.toString())
 
-    if (code !== 0) {
-      core.setFailed(`Process completed with exit code ${code}.`)
-    }
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`Process completed with exit code ${code}.`))
+      }
+    })
   })
-} catch (error) {
-  core.setFailed(error.message)
 }
+
+run(core.getInput('run'), core.getInput('shell'))
+  .catch(error => core.setFailed(error.message))
