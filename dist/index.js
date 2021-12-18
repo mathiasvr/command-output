@@ -1715,6 +1715,15 @@ const process = __nccwpck_require__(282)
 
 const core = __nccwpck_require__(186)
 
+// Default shell invocation used by GitHub Action 'run:'
+const shellArgs = {
+  bash: ['--noprofile', '--norc', '-eo', 'pipefail', '-c'],
+  sh: ['-e', '-c'],
+  python: ['-c'],
+  pwsh: ['-command', '.'],
+  powershell: ['-command', '.']
+}
+
 class RecordStream extends Transform {
   constructor () {
     super()
@@ -1731,31 +1740,41 @@ class RecordStream extends Transform {
   }
 }
 
-try {
-  const command = core.getInput('run')
-  const shell = core.getInput('shell')
+function run (command, shell) {
+  return new Promise((resolve, reject) => {
+    const outRec = new RecordStream()
+    const errRec = new RecordStream()
 
-  const outRec = new RecordStream()
-  const errRec = new RecordStream()
+    const args = shellArgs[shell]
 
-  // Run command
-  const cmd = spawn(command, { shell })
-
-  // Record stream output and pass it through main process
-  cmd.stdout.pipe(outRec).pipe(process.stdout)
-  cmd.stderr.pipe(errRec).pipe(process.stderr)
-
-  cmd.on('close', code => {
-    core.setOutput('stdout', outRec.output.toString())
-    core.setOutput('stderr', errRec.output.toString())
-
-    if (code !== 0) {
-      core.setFailed(`Process completed with exit code ${code}.`)
+    if (!args) {
+      return reject(new Error(`Option "shell" must be one of: ${Object.keys(shellArgs).join(', ')}.`))
     }
+
+    // Execute the command
+    const cmd = spawn(shell, [...args, command])
+
+    // Record stream output and pass it through main process
+    cmd.stdout.pipe(outRec).pipe(process.stdout)
+    cmd.stderr.pipe(errRec).pipe(process.stderr)
+
+    cmd.on('error', error => reject(error))
+
+    cmd.on('close', code => {
+      core.setOutput('stdout', outRec.output.toString())
+      core.setOutput('stderr', errRec.output.toString())
+
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`Process completed with exit code ${code}.`))
+      }
+    })
   })
-} catch (error) {
-  core.setFailed(error.message)
 }
+
+run(core.getInput('run'), core.getInput('shell'))
+  .catch(error => core.setFailed(error.message))
 
 })();
 
