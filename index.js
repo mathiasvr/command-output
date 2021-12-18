@@ -5,6 +5,15 @@ const process = require('process')
 
 const core = require('@actions/core')
 
+// Default shell invocation used by GitHub Action 'run:'
+const shellArgs = {
+  bash: ['--noprofile', '--norc', '-eo', 'pipefail', '-c'],
+  sh: ['-e', '-c'],
+  python: ['-c'],
+  pwsh: ['-command', '.'],
+  powershell: ['-command', '.']
+}
+
 class RecordStream extends Transform {
   constructor () {
     super()
@@ -26,8 +35,14 @@ function run (command, shell) {
     const outRec = new RecordStream()
     const errRec = new RecordStream()
 
-    // Run command
-    const cmd = spawn(command, { shell })
+    const args = shellArgs[shell]
+
+    if (!args) {
+      return reject(new Error(`Option "shell" must be one of: ${Object.keys(shellArgs).join(', ')}.`))
+    }
+
+    // Execute the command
+    const cmd = spawn(shell, [...args, command])
 
     // Record stream output and pass it through main process
     cmd.stdout.pipe(outRec).pipe(process.stdout)
