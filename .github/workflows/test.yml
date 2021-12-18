@@ -1,0 +1,54 @@
+name: Test
+
+on: [push]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    name: Tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Command that outputs stdout and stderr
+        uses: ./
+        id: find
+        continue-on-error: true
+        with:
+          run: find / -maxdepth 2 -iname 'tmp' -type d
+      - name: Assert stdout
+        if: "${{ steps.find.outputs.stdout != '/tmp\n/var/tmp\n' }}"
+        run: exit 1
+      - name: Assert stderr
+        if: "${{ steps.find.outputs.stderr != 'find: ‘/root’: Permission denied\nfind: ‘/lost+found’: Permission denied\n' }}"
+        run: exit 1
+
+      - name: Test multiline command with environment variable
+        uses: mathiasvr/command-output@v1
+        id: multi
+        env:
+          HELLO: Hello
+        with:
+          run: |
+            echo $HELLO
+            echo world!
+      - name: Assert stdout
+        if: "${{ steps.multi.outputs.stdout != 'Hello\nworld!\n' }}"
+        run: exit 1
+      - name: Assert stderr
+        if: "${{ steps.multi.outputs.stderr != '' }}"
+        run: exit 1
+
+      - name: Test unknown shell
+        uses: ./
+        continue-on-error: true
+        id: unknown-shell
+        with:
+          run: ls -al
+          shell: unknown
+      - name: Should fail on unknown shell
+        if: ${{ steps.unknown-shell.outcome != 'failure' }}
+        run: exit 1
