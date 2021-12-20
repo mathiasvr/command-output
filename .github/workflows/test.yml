@@ -27,7 +27,7 @@ jobs:
         run: exit 1
 
       - name: Test multiline command with environment variable
-        uses: mathiasvr/command-output@v1
+        uses: ./
         id: multi
         env:
           HELLO: Hello
