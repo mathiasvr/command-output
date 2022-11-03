@@ -14,7 +14,7 @@ outputs:
   stderr:
     description: Error of the command
 runs:
-  using: node12
+  using: node16
   main: dist/index.js
 branding:
   icon: terminal
