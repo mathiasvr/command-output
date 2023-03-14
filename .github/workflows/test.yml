@@ -15,15 +15,15 @@ jobs:
 
       - name: Command that outputs stdout and stderr
         uses: ./
-        id: find
+        id: both
         continue-on-error: true
         with:
-          run: find / -maxdepth 2 -iname 'tmp' -type d
+          run: node -e "console.log('foo');console.error('bar')"
       - name: Assert stdout
-        if: "${{ steps.find.outputs.stdout != '/tmp\n/var/tmp\n' }}"
+        if: "${{ steps.both.outputs.stdout != 'foo\n' }}"
         run: exit 1
       - name: Assert stderr
-        if: "${{ steps.find.outputs.stderr != 'find: ‘/root’: Permission denied\nfind: ‘/lost+found’: Permission denied\n' }}"
+        if: "${{ steps.both.outputs.stderr != 'bar\n' }}"
         run: exit 1
 
       - name: Test multiline command with environment variable
