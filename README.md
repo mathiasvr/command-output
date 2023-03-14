@@ -29,7 +29,7 @@ The output of the command written to stderr.
 ```yaml
 steps:
 - name: Get today's date
-  uses: mathiasvr/command-output@v1
+  uses: mathiasvr/command-output@v2.0.0
   id: today
   with:
     run: date +'%Y-%m-%d'
@@ -42,7 +42,7 @@ steps:
 ```yaml
 steps:
 - name: Read file if it exists?
-  uses: mathiasvr/command-output@v1
+  uses: mathiasvr/command-output@v2.0.0
   continue-on-error: true
   id: cmd
   with:
