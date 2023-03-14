@@ -1,6 +1,6 @@
 {
   "name": "command-output",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Run a command and store its output",
   "private": true,
   "main": "index.js",
